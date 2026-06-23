@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healthcare Application Architecture — Expert Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d29922;
+    --accent4: #f85149;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --heading-font: 'Playfair Display', Georgia, serif;
+    --mono-font: 'IBM Plex Mono', 'Courier New', monospace;
+    --body-font: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body-font);
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 64px 40px 100px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+    margin-bottom: 64px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .doc-label {
+    font-family: var(--mono-font);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .doc-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent) 0%, transparent 100%);
+    opacity: 0.4;
+  }
+
+  h1 {
+    font-family: var(--heading-font);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── VERDICT TABLE ── */
+  .verdict-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 64px;
+    animation: fadeUp 0.5s ease 0.1s both;
+  }
+  .verdict-block .block-header {
+    background: var(--surface2);
+    padding: 14px 24px;
+    font-family: var(--mono-font);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead th {
+    text-align: left;
+    padding: 12px 24px;
+    font-family: var(--mono-font);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(88,166,255,0.04); }
+  tbody td {
+    padding: 14px 24px;
+    font-size: 13.5px;
+    vertical-align: top;
+  }
+  tbody td:first-child {
+    font-family: var(--mono-font);
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+    width: 220px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-family: var(--mono-font);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .badge-solid  { background: rgba(63,185,80,0.15);  color: var(--accent2); border: 1px solid rgba(63,185,80,0.3); }
+  .badge-caution{ background: rgba(210,153,34,0.15); color: var(--accent3); border: 1px solid rgba(210,153,34,0.3);}
+  .badge-risk   { background: rgba(248,81,73,0.15);  color: var(--accent4); border: 1px solid rgba(248,81,73,0.3); }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-bottom: 60px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .section-num {
+    font-family: var(--mono-font);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  h2 {
+    font-family: var(--heading-font);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2 .accent-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    margin-bottom: 3px;
+  }
+
+  h3 {
+    font-family: var(--mono-font);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent3);
+    margin: 28px 0 10px;
+  }
+
+  p {
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    font-weight: 300;
+    line-height: 1.8;
+  }
+  p strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ── CALLOUT BOXES ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(88,166,255,0.05);
+    padding: 16px 20px;
+    border-radius: 0 6px 6px 0;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .callout.warning {
+    border-left-color: var(--accent3);
+    background: rgba(210,153,34,0.05);
+  }
+  .callout.success {
+    border-left-color: var(--accent2);
+    background: rgba(63,185,80,0.05);
+  }
+  .callout.danger {
+    border-left-color: var(--accent4);
+    background: rgba(248,81,73,0.05);
+  }
+  .callout strong { color: var(--text); }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .code-block .cb-header {
+    background: var(--surface2);
+    padding: 8px 16px;
+    font-family: var(--mono-font);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .code-block .cb-header::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+  .code-block pre {
+    padding: 20px;
+    font-family: var(--mono-font);
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block pre .kw  { color: var(--accent);  }
+  .code-block pre .val { color: var(--accent2); }
+  .code-block pre .cmt { color: var(--text-dim); font-style: italic; }
+  .code-block pre .key { color: var(--accent3); }
+
+  /* ── BULLET LISTS ── */
+  ul.rec-list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 20px;
+  }
+  ul.rec-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 300;
+  }
+  ul.rec-list li:last-child { border-bottom: none; }
+  ul.rec-list li::before {
+    content: '→';
+    color: var(--accent);
+    font-family: var(--mono-font);
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  ul.rec-list li strong { color: var(--text); font-weight: 500; }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    font-family: var(--mono-font);
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-muted);
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+  .arch-diagram .layer-title { color: var(--accent); font-weight: 500; }
+  .arch-diagram .node       { color: var(--accent2); }
+  .arch-diagram .connector  { color: var(--text-dim); }
+  .arch-diagram .note       { color: var(--accent3); }
+
+  /* ── RISK BOX ── */
+  .risk-box {
+    border: 1px solid rgba(248,81,73,0.4);
+    background: rgba(248,81,73,0.04);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 32px 0;
+  }
+  .risk-box .risk-label {
+    font-family: var(--mono-font);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent4);
+    margin-bottom: 10px;
+  }
+  .risk-box p { color: var(--text-muted); margin: 0; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+    padding-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer span {
+    font-family: var(--mono-font);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.10s; }
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.20s; }
+  .section:nth-child(5) { animation-delay: 0.25s; }
+
+  @media (max-width: 640px) {
+    .page { padding: 36px 20px 80px; }
+    tbody td:first-child { width: auto; white-space: normal; }
+    h2 { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div class="doc-label">Architecture Review &nbsp;·&nbsp; Healthcare Systems &nbsp;·&nbsp; Expert Analysis</div>
+    <h1>VistA-Backed <em>Healthcare</em><br>Application Architecture</h1>
+    <p class="subtitle">Command-driven, context-aware layered design with modular client support &nbsp;·&nbsp; Expert findings &amp; recommendations</p>
+  </header>
+
+  <!-- VERDICT TABLE -->
+  <div class="verdict-block" style="animation-delay:0.08s">
+    <div class="block-header">Summary Verdict</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th>Assessment</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>RPC Gateway Layer</td>
+          <td>Sound. Prioritize error normalization &amp; session management.</td>
+          <td><span class="badge badge-solid">Solid</span></td>
+        </tr>
+        <tr>
+          <td>Execution Context API</td>
+          <td>Excellent pattern. Invest in declarative validation and context resolution.</td>
+          <td><span class="badge badge-solid">Excellent</span></td>
+        </tr>
+        <tr>
+          <td>Command-Driven GUI + Console</td>
+          <td>Fully achievable. Commands must be self-describing; navigation must be a command.</td>
+          <td><span class="badge badge-solid">Achievable</span></td>
+        </tr>
+        <tr>
+          <td>Modular Client</td>
+          <td>Compatible with command design if modules contribute to a shared registry.</td>
+          <td><span class="badge badge-solid">Compatible</span></td>
+        </tr>
+        <tr>
+          <td>Context Schema Governance</td>
+          <td>Primary architectural risk. Must be designed formally from day one.</td>
+          <td><span class="badge badge-risk">Risk</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="section">
+    <span class="section-num">Layer 01</span>
+    <h2><span class="accent-dot"></span>RPC Gateway</h2>
+    <p>Wrapping VistA RPCs behind an HTTP/JSON gateway is the <strong>standard modernization approach</strong> for VistA systems and the correct first architectural boundary. The gateway acts as a thin translator between modern HTTP semantics and the M broker protocol.</p>
+
+    <h3>Key Recommendations</h3>
+    <ul class="rec-list">
+      <li><strong>Stateless gateway design</strong> — Keep session and DUZ context in the JSON envelope, not in gateway server state. VistA RPCs are session-bound via M globals; the gateway must manage broker connections per-session with care.</li>
+      <li><strong>Versioned RPC mapping registry</strong> — Maintain an explicit registry mapping <code>rpc_name → { params, return_schema }</code>. Critical when VistA patches change RPC signatures over time.</li>
+      <li><strong>Unified error normalization</strong> — VistA error returns are inconsistent across M errors, FileMan errors, and RPC-level errors. Normalize all into a structured error envelope at the gateway — not in the client.</li>
+      <li><strong>Authentication boundary</strong> — KACC / CAPRI / CCOW context belongs at this layer, not propagated into client code.</li>
+    </ul>
+
+    <div class="callout warning">
+      <strong>Session handling is non-trivial.</strong> M globals are inherently session-scoped. Concurrent request management across multiple clients requires explicit connection pooling or per-request broker instantiation with careful cleanup.
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section">
+    <span class="section-num">Layer 02</span>
+    <h2><span class="accent-dot"></span>Execution Context API</h2>
+    <p>This is the <strong>strongest and most important design decision</strong> in the architecture. The pattern described is a <em>Context Object</em> combined with <em>Command</em> and <em>declarative function metadata</em> — a well-proven combination for evolving, complex domain models.</p>
+
+    <div class="code-block">
+      <div class="cb-header">Execution Context — Conceptual Structure</div>
+      <pre>
+<span class="kw">ExecutionContext</span> = {
+  <span class="key">PatientRecord</span>: <span class="val">{ dfn, name, dob, ... }</span>,
+  <span class="key">Visit</span>:         <span class="val">{ ien, date, status, ... }</span>,
+  <span class="key">Provider</span>:      <span class="val">{ duz, name, role, ... }</span>
+}
+
+<span class="kw">APIFunction</span> = {
+  <span class="key">name</span>:      <span class="val">"createOrder"</span>,
+  <span class="key">requires</span>: <span class="val">["PatientRecord.dfn", "Visit.ien", "Provider.duz"]</span>,
+  <span class="key">rpc</span>:      <span class="val">"ORWDX SAVE"</span>,
+  <span class="key">param_map</span>: <span class="val">{ ... }</span>
+}
+<span class="cmt">// API layer extracts, validates, builds JSON request → RPC Gateway</span></pre>
+    </div>
+
+    <h3>Strengths</h3>
+    <ul class="rec-list">
+      <li>Client is <strong>fully decoupled</strong> from VistA internals — the API layer is a true anti-corruption layer.</li>
+      <li>Domain model changes do <strong>not propagate</strong> to client code.</li>
+      <li>Same API surface works over any transport: HTTP, named pipe, or in-process call.</li>
+    </ul>
+
+    <h3>Critical Design Considerations</h3>
+    <ul class="rec-list">
+      <li><strong>Declarative and exhaustive context validation</strong> — check not just object presence but property-level validity: DFN is not null, Visit is not closed, Provider has appropriate role.</li>
+      <li><strong>Context resolution step</strong> — separate from validation. A Patient object may exist in context with an unresolved DFN. Resolution must happen before validation.</li>
+      <li><strong>Context mutation strategy</strong> — decide whether executing a function updates the context (e.g., a created order is added). Mutable context is powerful but harder to debug. Consider an explicit result/event pipeline that proposes context changes the caller must apply.</li>
+      <li><strong>Async and long-running RPCs</strong> — some VistA RPCs are slow. JSON requests should carry a correlation ID to support polling or server-side callbacks.</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section">
+    <span class="section-num">Layer 03</span>
+    <h2><span class="accent-dot"></span>Command-Driven Control — GUI &amp; Console from One Model</h2>
+    <p>This is <strong>entirely possible and is the correct goal.</strong> It is the Command pattern taken to its logical conclusion: if every user action maps to a named Command with a declared execution context, the UI is nothing more than a <em>command dispatcher</em> — and that dispatcher can be a button, a menu item, a keyboard shortcut, a CLI verb, or a script.</p>
+
+    <div class="callout success">
+      <strong>Core Insight:</strong> Commands that are self-describing (they declare what context they need) allow the GUI to automatically enable or disable controls based on whether the current context satisfies requirements — eliminating hand-coded enable logic per screen.
+    </div>
+
+    <div class="code-block">
+      <div class="cb-header">Command Registry — Dispatcher Pattern</div>
+      <pre>
+<span class="kw">CommandRegistry</span>
+  └── <span class="key">Command</span>: <span class="val">{ name, requires[], execute(context) → result }</span>
+
+<span class="kw">GUI Client</span>
+  └── Button <span class="val">"Sign Order"</span>  → <span class="node">dispatch</span>(<span class="val">"signOrder"</span>, currentContext)
+
+<span class="kw">ChUI / Console Client</span>
+  └── Input <span class="val">"> sign-order"</span> → <span class="node">dispatch</span>(<span class="val">"signOrder"</span>, currentContext)
+
+<span class="kw">Script / Automation</span>
+  └── JSON batch        → <span class="node">dispatch</span> sequence against shared context</pre>
+    </div>
+
+    <h3>What Makes This Work</h3>
+    <ul class="rec-list">
+      <li>Commands are <strong>self-describing</strong> — context-driven enable/disable logic is automatic, not hand-coded per screen.</li>
+      <li>A console client can <strong>enumerate available commands</strong> filtered by current context, giving a natural CLI user experience.</li>
+      <li><strong>Testing is deterministic</strong> — inject a context, fire a command, assert the result. No UI interaction required.</li>
+    </ul>
+
+    <h3>Discipline Required</h3>
+    <ul class="rec-list">
+      <li>All state changes must go through commands — <strong>no back-door direct model mutations</strong> in UI code.</li>
+      <li><strong>Navigation must itself be a command.</strong> Switching screens or views cannot live outside the command system, or the console client loses parity with the GUI.</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 4 -->
+  <div class="section">
+    <span class="section-num">Layer 04</span>
+    <h2><span class="accent-dot"></span>Modular Client Architecture</h2>
+    <p>The modular client design does <strong>not contradict</strong> the command-driven model — it <em>complements</em> it. The potential conflict arises only if modules maintain isolated command spaces. The solution is for each module to contribute commands to a <strong>shared, global Command Registry</strong> owned by the main application.</p>
+
+    <div class="code-block">
+      <div class="cb-header">Module Plugin Architecture</div>
+      <pre>
+<span class="kw">MainApplication</span>
+  ├── <span class="key">CommandRegistry</span>  <span class="cmt">(global — owned by app, not modules)</span>
+  ├── <span class="key">ContextManager</span>   <span class="cmt">(global — single source of truth)</span>
+  ├── <span class="key">ModuleLoader</span>
+  │     ├── <span class="node">Module: Orders</span>
+  │     │     └── registers: <span class="val">[createOrder, signOrder, discontinueOrder]</span>
+  │     ├── <span class="node">Module: Meds</span>
+  │     │     └── registers: <span class="val">[prescribeMed, renewMed]</span>
+  │     └── <span class="node">Module: Scheduling</span>
+  │           └── registers: <span class="val">[scheduleVisit, cancelVisit]</span>
+  └── <span class="key">UI Shell</span>  <span class="cmt">(GUI or ChUI)</span>
+        └── renders available commands from Registry given current context</pre>
+    </div>
+
+    <h3>Rules to Avoid Overcomplication</h3>
+    <ul class="rec-list">
+      <li><strong>Modules contribute to the registry; they do not own it.</strong> The main application owns the registry and context — modules are contributors only.</li>
+      <li><strong>Modules are activated, not instantiated per-use.</strong> Load lazily at startup, but do not create and destroy modules per screen transition.</li>
+      <li><strong>Inter-module communication goes through context and commands only.</strong> Module A needing data from Module B means Module B's command puts that data in shared context. No direct module-to-module calls.</li>
+      <li><strong>Schema evolution is isolated.</strong> When the object model changes, only the affected module and its API mappings change. Other modules remain unaffected as long as context contracts are honored.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>Modularity and the command model are natural allies.</strong> Modules are the unit of <em>feature delivery</em>; commands are the unit of <em>user interaction</em>. Keeping these concerns cleanly separated is what prevents complexity from compounding.
+    </div>
+  </div>
+
+  <!-- RISK SECTION -->
+  <div class="risk-box">
+    <div class="risk-label">⚠ Primary Architectural Risk</div>
+    <p>The <strong>execution context object graph will grow complex</strong> as the healthcare model evolves. The most common failure mode for this pattern is the context becoming an untyped property bag that different modules interpret inconsistently.</p>
+    <br>
+    <p>Design a formal <strong>Context Schema</strong> from the start — even before the domain model is finalized. The <em>shape</em> of how objects enter, mutate, and leave context must be governed centrally. Without this, diverging interpretations across modules will accumulate as technical debt that is extremely costly to reverse in a healthcare context where data integrity is a regulatory requirement.</p>
+  </div>
+
+  <!-- CLOSING -->
+  <div class="section">
+    <span class="section-num">Closing</span>
+    <h2><span class="accent-dot"></span>Architectural Fit — Overall</h2>
+    <p>The proposed architecture exhibits <strong>strong alignment</strong> between its stated goals and its design choices. The layering — VistA/FileMan → RPC Gateway → Context API → Command Registry → Modular UI Shell — provides genuine separation of concerns and a credible path for incremental expansion of both the domain model and the feature set.</p>
+    <p>The decision to isolate clients from RPC mechanics via an execution context API is particularly well-suited to a system where the underlying persistence layer (VistA/Mumps) is both highly capable and highly idiosyncratic. It gives future developers a clean surface to work against without requiring VistA expertise at the UI layer.</p>
+    <p>Consistent governance of the <strong>Context Schema</strong> and the <strong>Command Registry</strong> is where the architecture will either hold together elegantly or fracture under the pressure of feature expansion. Invest in those two structures early.</p>
+  </div>
+
+  <footer>
+    <span>Healthcare Application Architecture &nbsp;·&nbsp; Expert Analysis</span>
+    <span>VistA / Mumps / FileMan &nbsp;·&nbsp; Command-Driven Design</span>
+  </footer>
+
+</div>
+</body>
+</html>

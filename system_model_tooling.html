@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Model — Priority, Tooling, Implementation Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d29922;
+    --accent4: #f85149;
+    --accent5: #bc8cff;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --hf: 'Playfair Display', Georgia, serif;
+    --mf: 'IBM Plex Mono', monospace;
+    --bf: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background:var(--bg); color:var(--text); font-family:var(--bf); font-size:15px; line-height:1.75; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(var(--border) 1px,transparent 1px), linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:48px 48px; opacity:.13; pointer-events:none; z-index:0;
+  }
+  .page { position:relative; z-index:1; max-width:980px; margin:0 auto; padding:64px 40px 100px; }
+
+  /* HEADER */
+  header { border-bottom:1px solid var(--border); padding-bottom:48px; margin-bottom:60px; animation:fadeDown .55s ease both; }
+  .doc-label {
+    font-family:var(--mf); font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent2); margin-bottom:20px; display:flex; align-items:center; gap:10px;
+  }
+  .doc-label::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--accent2) 0%,transparent 100%); opacity:.3; }
+  h1 { font-family:var(--hf); font-size:clamp(2rem,4vw,3rem); font-weight:900; line-height:1.13; margin-bottom:16px; }
+  h1 em { font-style:italic; color:var(--accent2); }
+  .subtitle { color:var(--text-muted); font-size:14px; font-weight:300; letter-spacing:.03em; }
+
+  /* SECTIONS */
+  .section { margin-bottom:60px; animation:fadeUp .5s ease both; }
+  .section:nth-child(1){animation-delay:.05s} .section:nth-child(2){animation-delay:.09s}
+  .section:nth-child(3){animation-delay:.12s} .section:nth-child(4){animation-delay:.15s}
+  .section:nth-child(5){animation-delay:.18s} .section:nth-child(6){animation-delay:.21s}
+  .section:nth-child(7){animation-delay:.24s}
+
+  .section-num { display:block; font-family:var(--mf); font-size:11px; color:var(--text-dim); letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
+  h2 { font-family:var(--hf); font-size:1.55rem; font-weight:700; margin-bottom:20px; display:flex; align-items:baseline; gap:12px; }
+  h2 .dot { width:7px; height:7px; border-radius:50%; background:var(--accent2); flex-shrink:0; margin-bottom:3px; }
+  h3 { font-family:var(--mf); font-size:11.5px; font-weight:500; letter-spacing:.10em; text-transform:uppercase; color:var(--accent3); margin:28px 0 10px; }
+  p { color:var(--text-muted); margin-bottom:14px; font-weight:300; line-height:1.85; }
+  p strong { color:var(--text); font-weight:500; }
+
+  /* PRIORITY CHAIN */
+  .pchain { margin:24px 0; display:flex; flex-direction:column; gap:0; }
+  .pc-row {
+    display:flex; align-items:stretch; gap:0;
+    border:1px solid var(--border); border-bottom:none;
+    border-radius:0; background:var(--surface);
+  }
+  .pc-row:first-child { border-radius:8px 8px 0 0; }
+  .pc-row:last-child  { border-bottom:1px solid var(--border); border-radius:0 0 8px 8px; }
+  .pc-num {
+    width:52px; flex-shrink:0;
+    background:var(--surface2); border-right:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mf); font-size:18px; font-weight:500;
+  }
+  .pc-row.p1 .pc-num { color:var(--accent2); }
+  .pc-row.p2 .pc-num { color:var(--accent); }
+  .pc-row.p3 .pc-num { color:var(--accent3); }
+  .pc-row.p4 .pc-num { color:var(--accent5); }
+  .pc-row.p5 .pc-num { color:var(--text-muted); }
+  .pc-body { flex:1; padding:14px 20px; }
+  .pc-body .pl { font-weight:500; color:var(--text); font-size:14.5px; margin-bottom:3px; }
+  .pc-body .pd { font-size:13px; color:var(--text-muted); font-weight:300; }
+  .pc-tag { padding:14px 18px; display:flex; align-items:center; background:var(--surface); flex-shrink:0; }
+
+  .badge { display:inline-block; padding:2px 10px; border-radius:20px; font-family:var(--mf); font-size:10px; letter-spacing:.08em; text-transform:uppercase; font-weight:500; }
+  .b-green  { background:rgba(63,185,80,.12);   color:var(--accent2); border:1px solid rgba(63,185,80,.28);  }
+  .b-blue   { background:rgba(88,166,255,.12);  color:var(--accent);  border:1px solid rgba(88,166,255,.28); }
+  .b-purple { background:rgba(188,140,255,.12); color:var(--accent5); border:1px solid rgba(188,140,255,.28);}
+  .b-yellow { background:rgba(210,153,34,.12);  color:var(--accent3); border:1px solid rgba(210,153,34,.28); }
+  .b-red    { background:rgba(248,81,73,.12);   color:var(--accent4); border:1px solid rgba(248,81,73,.28);  }
+  .b-gray   { background:rgba(139,148,158,.10); color:var(--text-muted); border:1px solid rgba(139,148,158,.2);}
+
+  /* LIB CARDS */
+  .lib-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:22px; transition:border-color .2s; }
+  .lib-card:hover { border-color:rgba(63,185,80,.3); }
+  .lib-head { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:16px 22px 12px; background:var(--surface2); border-bottom:1px solid var(--border); }
+  .lib-title { font-family:var(--mf); font-size:13.5px; font-weight:500; color:var(--accent); }
+  .lib-title a { color:inherit; text-decoration:none; border-bottom:1px solid rgba(88,166,255,.3); }
+  .lib-title a:hover { border-bottom-color:var(--accent); }
+  .lib-badges { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .lib-body { padding:16px 22px 20px; }
+  .lib-desc { color:var(--text-muted); font-size:14px; font-weight:300; line-height:1.8; margin-bottom:14px; }
+  .lib-desc strong { color:var(--text); font-weight:500; }
+  ul.feat { list-style:none; padding:0; margin:0 0 12px; }
+  ul.feat li { display:flex; gap:9px; align-items:flex-start; font-size:13px; font-weight:300; color:var(--text-muted); padding:5px 0; border-bottom:1px solid rgba(48,54,61,.4); }
+  ul.feat li:last-child { border-bottom:none; }
+  ul.feat li::before { content:'·'; color:var(--accent2); font-size:16px; flex-shrink:0; line-height:1.3; }
+  ul.feat li strong { color:var(--text); font-weight:500; }
+  .fit-note { border-top:1px solid var(--border); margin-top:12px; padding-top:11px; font-size:12.5px; color:var(--text-dim); font-family:var(--mf); }
+  .fit-note span { color:var(--accent2); font-weight:500; }
+
+  /* CODE BLOCKS */
+  .code-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin:18px 0; }
+  .cb-head { background:var(--surface2); padding:8px 16px; font-family:var(--mf); font-size:11px; color:var(--text-dim); letter-spacing:.08em; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:7px; }
+  .cb-head::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--accent2); opacity:.6; }
+  pre { padding:20px; font-family:var(--mf); font-size:12.5px; line-height:1.75; color:var(--text-muted); overflow-x:auto; white-space:pre; }
+  .kw  { color:var(--accent5); }
+  .val { color:var(--accent2); }
+  .cmt { color:var(--text-dim); font-style:italic; }
+  .key { color:var(--accent3); }
+  .cmd { color:var(--accent);  }
+
+  /* CALLOUTS */
+  .callout { border-left:3px solid var(--accent2); background:rgba(63,185,80,.05); padding:16px 20px; border-radius:0 6px 6px 0; margin:20px 0; font-size:14px; color:var(--text-muted); font-weight:300; }
+  .callout.blue   { border-left-color:var(--accent);  background:rgba(88,166,255,.05);  }
+  .callout.yellow { border-left-color:var(--accent3); background:rgba(210,153,34,.05);  }
+  .callout.purple { border-left-color:var(--accent5); background:rgba(188,140,255,.05); }
+  .callout.red    { border-left-color:var(--accent4); background:rgba(248,81,73,.05);   }
+  .callout strong { color:var(--text); font-weight:500; }
+
+  /* BULLET LISTS */
+  ul.rl { list-style:none; padding:0; margin:12px 0 18px; }
+  ul.rl li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid rgba(48,54,61,.5); color:var(--text-muted); font-size:14px; font-weight:300; }
+  ul.rl li:last-child { border-bottom:none; }
+  ul.rl li::before { content:'→'; color:var(--accent2); font-family:var(--mf); font-size:12px; flex-shrink:0; margin-top:2px; }
+  ul.rl li strong { color:var(--text); font-weight:500; }
+
+  /* SCHEMA TABLE */
+  .schema-table { width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin:20px 0; }
+  .schema-table thead th { text-align:left; padding:11px 18px; font-family:var(--mf); font-size:11px; letter-spacing:.10em; text-transform:uppercase; color:var(--text-dim); background:var(--surface2); border-bottom:1px solid var(--border); }
+  .schema-table tbody td { padding:11px 18px; font-size:13px; color:var(--text-muted); border-bottom:1px solid var(--border); font-weight:300; vertical-align:top; }
+  .schema-table tbody tr:last-child td { border-bottom:none; }
+  .schema-table tbody td:first-child { font-family:var(--mf); font-size:12px; color:var(--accent3); white-space:nowrap; }
+  .schema-table tbody td:nth-child(2) { font-family:var(--mf); font-size:11.5px; color:var(--accent5); }
+  .schema-table tbody td strong { color:var(--text); font-weight:500; }
+
+  /* DELIVERABLE TIMELINE */
+  .timeline { margin:24px 0; position:relative; }
+  .timeline::before { content:''; position:absolute; left:22px; top:0; bottom:0; width:2px; background:linear-gradient(180deg, var(--accent2), var(--accent), var(--accent3), var(--accent5)); opacity:.4; }
+  .tl-item { display:flex; gap:20px; margin-bottom:24px; position:relative; }
+  .tl-dot { width:44px; height:44px; flex-shrink:0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--mf); font-size:13px; font-weight:500; position:relative; z-index:1; border:2px solid; }
+  .tl-item.s1 .tl-dot { background:rgba(63,185,80,.15);   color:var(--accent2); border-color:var(--accent2); }
+  .tl-item.s2 .tl-dot { background:rgba(88,166,255,.15);  color:var(--accent);  border-color:var(--accent);  }
+  .tl-item.s3 .tl-dot { background:rgba(210,153,34,.15);  color:var(--accent3); border-color:var(--accent3); }
+  .tl-item.s4 .tl-dot { background:rgba(188,140,255,.15); color:var(--accent5); border-color:var(--accent5); }
+  .tl-body { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 18px; }
+  .tl-title { font-weight:500; color:var(--text); font-size:14px; margin-bottom:4px; }
+  .tl-desc  { font-size:13px; color:var(--text-muted); font-weight:300; line-height:1.7; }
+
+  footer { border-top:1px solid var(--border); margin-top:80px; padding-top:28px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  footer span { font-family:var(--mf); font-size:11px; color:var(--text-dim); letter-spacing:.08em; }
+
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(14px)}  to{opacity:1;transform:translateY(0)} }
+  @media(max-width:640px){ .page{padding:36px 20px 80px;} h2{font-size:1.25rem;} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="doc-label">Architecture Review · Part V · System Model · Implementation Priority · Tooling</div>
+    <h1>System Model, <em>Priority</em><br>&amp; Implementation Tooling</h1>
+    <p class="subtitle">What the model is · What gets built first · Database schema for states and workflow ·<br>Visual graph editor · Storage tooling recommendations for Delphi 12.2 CE</p>
+  </header>
+
+  <!-- 1. WHAT THE MODEL IS -->
+  <div class="section">
+    <span class="section-num">Analysis 01</span>
+    <h2><span class="dot"></span>What the System Model Actually Consists Of</h2>
+    <p>Your identification of state descriptions and workflow as the core elements is correct — but it is worth being precise about what "the model" means in this architecture, because it has three distinct layers that must be kept separate in the implementation.</p>
+
+    <div class="pchain">
+      <div class="pc-row p1">
+        <div class="pc-num">①</div>
+        <div class="pc-body">
+          <div class="pl">Object Model — the domain objects and their schemas</div>
+          <div class="pd">Defines what types of objects exist (PatientRecord, Visit, Provider, Order…), their properties, data types, cardinality, and validation rules. This is the vocabulary of the system.</div>
+        </div>
+        <div class="pc-tag"><span class="badge b-green">Schema DB</span></div>
+      </div>
+      <div class="pc-row p2">
+        <div class="pc-num">②</div>
+        <div class="pc-body">
+          <div class="pl">Execution Context Contracts — what each API function needs and produces</div>
+          <div class="pd">Declares which object properties each command requires and contributes. Maps domain objects to RPC parameters. Built on top of the object model; cannot exist without it.</div>
+        </div>
+        <div class="pc-tag"><span class="badge b-blue">Schema DB</span></div>
+      </div>
+      <div class="pc-row p3">
+        <div class="pc-num">③</div>
+        <div class="pc-body">
+          <div class="pl">Workflow Graph — states, transitions, guard conditions</div>
+          <div class="pd">Defines what states (active windows/forms) exist, how they connect, what context each requires and contributes, and what commands are available in each state. References the object model for context property names.</div>
+        </div>
+        <div class="pc-tag"><span class="badge b-yellow">Graph DB</span></div>
+      </div>
+      <div class="pc-row p4">
+        <div class="pc-num">④</div>
+        <div class="pc-body">
+          <div class="pl">Module Registry — which modules implement which states</div>
+          <div class="pd">Maps workflow states to the software modules (forms, frames, console views) that render them. Built last; depends on the workflow graph being stable.</div>
+        </div>
+        <div class="pc-tag"><span class="badge b-purple">Config</span></div>
+      </div>
+      <div class="pc-row p5">
+        <div class="pc-num">⑤</div>
+        <div class="pc-body">
+          <div class="pl">UI Implementation — the actual forms and screens</div>
+          <div class="pd">Renders the current workflow state. The thinnest layer; can be designed and built once the workflow graph is stable.</div>
+        </div>
+        <div class="pc-tag"><span class="badge b-gray">UI</span></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Critical insight:</strong> Layers ①–③ are pure data — schemas, contracts, and graph definitions. They have no code, no UI, no Delphi classes. They can be authored, reviewed, and versioned before a single line of application code is written. The tools to manage these layers are therefore the first things to implement.
+    </div>
+  </div>
+
+  <!-- 2. IMPLEMENTATION PRIORITY -->
+  <div class="section">
+    <span class="section-num">Analysis 02</span>
+    <h2><span class="dot"></span>Correct Implementation Priority Order</h2>
+    <p>Your instinct is right. The state descriptions and workflow graph are foundational. Everything else depends on them. But within that, there is a precise dependency order:</p>
+
+    <div class="timeline">
+      <div class="tl-item s1">
+        <div class="tl-dot">S1</div>
+        <div class="tl-body">
+          <div class="tl-title">Object Model Schema Manager</div>
+          <div class="tl-desc">The tool for defining domain object types, their properties, data types, and validation rules. This is the dictionary everything else references. Must exist first — the workflow graph references object property names; you cannot design transitions until you know what properties exist.</div>
+        </div>
+      </div>
+      <div class="tl-item s2">
+        <div class="tl-dot">S2</div>
+        <div class="tl-body">
+          <div class="tl-title">Workflow Graph Editor + Storage</div>
+          <div class="tl-desc">The tool for visually designing and persisting the workflow graph — nodes (states), transitions (edges), transition types, context contracts per node. References the object model from S1 when specifying context property requirements. This is the highest-value deliverable: once complete, clinical workflow review is possible without any UI.</div>
+        </div>
+      </div>
+      <div class="tl-item s3">
+        <div class="tl-dot">S3</div>
+        <div class="tl-body">
+          <div class="tl-title">Command Registry + Context Contract Editor</div>
+          <div class="tl-desc">The tool for defining commands, their required/contributed context properties, and their RPC mappings. Depends on S1 (object model) and informs S2 (workflow transitions reference commands). Can be developed in parallel with S2 once S1 is stable.</div>
+        </div>
+      </div>
+      <div class="tl-item s4">
+        <div class="tl-dot">S4</div>
+        <div class="tl-body">
+          <div class="tl-title">State Machine Engine + Runtime Loader</div>
+          <div class="tl-desc">The Delphi code that loads the workflow graph from storage (S2) and configures a stateless state machine instance at application startup. No UI; pure engine code. Once this exists, the workflow can be tested and scripted without any form being implemented.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <strong>Key observation:</strong> S1 and S2 are <em>authoring tools</em> — small internal applications whose sole purpose is to manage the model data. They are the first deliverables, not the last. A developer building the patient-selection workflow cannot start until S1 and S2 exist and contain the relevant object definitions and states.
+    </div>
+  </div>
+
+  <!-- 3. STORAGE STRATEGY -->
+  <div class="section">
+    <span class="section-num">Analysis 03</span>
+    <h2><span class="dot"></span>Storage Strategy — One Database, Two Concerns</h2>
+    <p>Both the object model schema and the workflow graph should be stored in a <strong>single embedded SQLite database</strong> — the system model database. This is the master definition file for the entire application. It is not a runtime data store; it is a <em>design artifact</em> that ships with the application and is loaded at startup.</p>
+
+    <h3>Why SQLite, Not JSON Files</h3>
+    <ul class="rl">
+      <li><strong>Relational integrity between layers</strong> — the workflow graph references object property names by foreign key, not by string lookup. Changes to the object model are immediately visible as constraint violations in the workflow graph — impossible with flat JSON files.</li>
+      <li><strong>Queryable</strong> — "show all workflow states that require PatientRecord.dfn" is a SQL query, not a recursive JSON scan. This matters for tooling, validation, and impact analysis.</li>
+      <li><strong>Single file, zero deployment</strong> — SQLite is a single .db file. FireDAC supports it natively in Delphi 12.2 CE with static linking; no separate installation required.</li>
+      <li><strong>Version control friendly</strong> — the .db file can be committed to source control. SQLite's file format is stable across versions. Schema migrations are trackable.</li>
+      <li><strong>Transaction safety</strong> — authoring tool edits are ACID transactions. A crash during a complex workflow edit does not corrupt the model.</li>
+    </ul>
+
+    <h3>Proposed Schema</h3>
+
+    <div class="code-block">
+      <div class="cb-head">System Model Database — Core Tables (SQLite DDL)</div>
+      <pre>
+<span class="cmt">-- ① OBJECT MODEL</span>
+<span class="kw">CREATE TABLE</span> ObjectType (
+  id          <span class="val">TEXT PRIMARY KEY</span>,          <span class="cmt">-- e.g. 'PatientRecord'</span>
+  label       <span class="val">TEXT NOT NULL</span>,
+  description <span class="val">TEXT</span>,
+  version     <span class="val">INTEGER DEFAULT 1</span>
+);
+
+<span class="kw">CREATE TABLE</span> ObjectProperty (
+  id            <span class="val">TEXT PRIMARY KEY</span>,        <span class="cmt">-- e.g. 'PatientRecord.dfn'</span>
+  object_type   <span class="val">TEXT REFERENCES ObjectType(id)</span>,
+  name          <span class="val">TEXT NOT NULL</span>,            <span class="cmt">-- 'dfn'</span>
+  data_type     <span class="val">TEXT NOT NULL</span>,            <span class="cmt">-- 'string','integer','date','ien'</span>
+  nullable      <span class="val">INTEGER DEFAULT 1</span>,        <span class="cmt">-- 0 = always required</span>
+  description   <span class="val">TEXT</span>
+);
+
+<span class="cmt">-- ② WORKFLOW GRAPH</span>
+<span class="kw">CREATE TABLE</span> WorkflowGraph (
+  id    <span class="val">TEXT PRIMARY KEY</span>,               <span class="cmt">-- e.g. 'DocumentVisit'</span>
+  label <span class="val">TEXT NOT NULL</span>,
+  description <span class="val">TEXT</span>
+);
+
+<span class="kw">CREATE TABLE</span> WorkflowNode (
+  id           <span class="val">TEXT PRIMARY KEY</span>,
+  graph_id     <span class="val">TEXT REFERENCES WorkflowGraph(id)</span>,
+  label        <span class="val">TEXT NOT NULL</span>,
+  is_initial   <span class="val">INTEGER DEFAULT 0</span>,
+  is_terminal  <span class="val">INTEGER DEFAULT 0</span>,
+  module_hint  <span class="val">TEXT</span>                       <span class="cmt">-- optional: maps to UI module name</span>
+);
+
+<span class="kw">CREATE TABLE</span> NodeContextContract (
+  node_id      <span class="val">TEXT REFERENCES WorkflowNode(id)</span>,
+  property_id  <span class="val">TEXT REFERENCES ObjectProperty(id)</span>,
+  role         <span class="val">TEXT NOT NULL</span>,             <span class="cmt">-- 'entry_requires' | 'exit_contributes'</span>
+  <span class="kw">PRIMARY KEY</span> (node_id, property_id, role)
+);
+
+<span class="kw">CREATE TABLE</span> WorkflowTransition (
+  id              <span class="val">TEXT PRIMARY KEY</span>,
+  source_node_id  <span class="val">TEXT REFERENCES WorkflowNode(id)</span>,
+  target_node_id  <span class="val">TEXT REFERENCES WorkflowNode(id)</span>,
+  trigger_command <span class="val">TEXT</span>,                   <span class="cmt">-- references Command.id</span>
+  transition_type <span class="val">TEXT NOT NULL</span>,          <span class="cmt">-- 'mandatory'|'optional'|'global'|'conditional'</span>
+  label           <span class="val">TEXT</span>
+);
+
+<span class="kw">CREATE TABLE</span> TransitionGuard (
+  transition_id <span class="val">TEXT REFERENCES WorkflowTransition(id)</span>,
+  property_id   <span class="val">TEXT REFERENCES ObjectProperty(id)</span>,
+  condition     <span class="val">TEXT DEFAULT 'present'</span>,   <span class="cmt">-- 'present'|'not_null'|expression</span>
+  <span class="kw">PRIMARY KEY</span> (transition_id, property_id)
+);
+
+<span class="cmt">-- ③ COMMAND REGISTRY</span>
+<span class="kw">CREATE TABLE</span> Command (
+  id          <span class="val">TEXT PRIMARY KEY</span>,          <span class="cmt">-- e.g. 'cmd.selectPatient'</span>
+  label       <span class="val">TEXT NOT NULL</span>,
+  rpc_name    <span class="val">TEXT</span>,                       <span class="cmt">-- VistA RPC, if applicable</span>
+  description <span class="val">TEXT</span>
+);
+
+<span class="kw">CREATE TABLE</span> CommandContextRequirement (
+  command_id  <span class="val">TEXT REFERENCES Command(id)</span>,
+  property_id <span class="val">TEXT REFERENCES ObjectProperty(id)</span>,
+  role        <span class="val">TEXT NOT NULL</span>,             <span class="cmt">-- 'requires' | 'produces'</span>
+  <span class="kw">PRIMARY KEY</span> (command_id, property_id, role)
+);</pre>
+    </div>
+
+    <p>This schema creates a <strong>fully navigable, referentially consistent</strong> definition of the entire system model. Any change to an object property name immediately surfaces as a foreign key violation in the NodeContextContract, TransitionGuard, and CommandContextRequirement tables — preventing silent inconsistencies between the object model and the workflow definition.</p>
+
+    <h3>Schema Migration</h3>
+    <p>Since the object model is not finalized and will change, the system model database must support <strong>schema versioning</strong>. Add a single metadata table:</p>
+
+    <div class="code-block">
+      <div class="cb-head">Schema Version Tracking</div>
+      <pre>
+<span class="kw">CREATE TABLE</span> SchemaVersion (
+  version      <span class="val">INTEGER PRIMARY KEY</span>,
+  applied_at   <span class="val">TEXT DEFAULT (datetime('now'))</span>,
+  description  <span class="val">TEXT</span>
+);
+<span class="cmt">-- Insert on database creation:</span>
+<span class="kw">INSERT INTO</span> SchemaVersion (version, description) <span class="kw">VALUES</span> (<span class="val">1</span>, <span class="val">'Initial schema'</span>);</pre>
+    </div>
+    <p>The authoring tool checks the schema version on startup and applies pending migrations in order. This makes model database upgrades reproducible and auditable — essential when the model is shared across a development team.</p>
+  </div>
+
+  <!-- 4. WORKFLOW GRAPH EDITOR -->
+  <div class="section">
+    <span class="section-num">Analysis 04</span>
+    <h2><span class="dot"></span>Workflow Graph Editor — Tooling Options</h2>
+    <p>The graph editor is an internal tool — its primary users are developers and clinical informaticists designing workflows, not end users. It does not need to be polished; it needs to be <em>correct and practical</em>. There are two viable strategies.</p>
+
+    <h3>Strategy A — Embed a Delphi Graph Component</h3>
+    <p>Build the editor as a Delphi application using an existing graph/diagram VCL component for the canvas. The editor saves directly to the SQLite system model database.</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/Khojasteh/simple-graph" target="_blank">TSimpleGraph (Khojasteh/simple-graph)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native VCL</span>
+          <span class="badge b-blue">Freeware + Source</span>
+          <span class="badge b-yellow">Best Available Option</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A visual Delphi VCL component for drawing directed graphs. Nodes are customizable geometric shapes (rectangle, ellipse, rhombus for decision nodes, etc.); edges connect nodes with configurable line styles. The component handles all hit-testing, drag-move, and selection. It is mature, source-available, and the most capable free option in the Delphi ecosystem for this purpose.
+        </div>
+        <ul class="feat">
+          <li><strong>Seven built-in node shapes</strong> — rectangle (state), ellipse (terminal), rhombus (decision/conditional) cover all workflow node types</li>
+          <li><strong>Flexible link objects</strong> — edges can be anchored to nodes; endpoints customizable for arrow heads</li>
+          <li><strong>Hit-testing and selection</strong> — click-to-select nodes and edges; move nodes by drag</li>
+          <li><strong>Clipboard and printer support</strong> — copy/paste graph objects; print workflow diagrams for clinical review</li>
+          <li><strong>Fully customizable</strong> — node appearance (color, label, border) is data-driven; can render node state (initial, terminal, has-errors) visually</li>
+          <li>Source code available — can be patched for Delphi 12.2 CE compatibility if needed</li>
+        </ul>
+        <div class="fit-note">
+          <span>Integration approach:</span> Each TSimpleGraph node stores the WorkflowNode.id in its Tag/UserData. On node select, the right panel shows a property editor bound to the SQLite row for that node. Saving writes to the SQLite model database. The graph layout (node x/y positions) is stored in a separate LayoutData table — separate from the semantic model.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout yellow">
+      <strong>Caveat on TSimpleGraph:</strong> The author has stated no future updates are planned. The component compiles under older Delphi versions; test compatibility with Delphi 12.2 CE before committing. If compilation fails, the source is available to patch. An alternative is to build a custom canvas-based editor using TCanvas directly — more work upfront, but zero external dependency and full control.
+    </div>
+
+    <h3>Strategy B — Embed a Web-Based Graph Editor (Recommended for Richness)</h3>
+    <p>Host a web-based graph editor (running locally, no internet) inside a Delphi form using an embedded Chromium browser component. The web editor communicates with the Delphi host via JavaScript interop to read and write the SQLite model database. This gives you a far richer graph editing experience with no Delphi graph component limitations.</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/salvadordf/CEF4Delphi" target="_blank">CEF4Delphi — Chromium Embedded Framework for Delphi</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">MIT / BSD License</span>
+          <span class="badge b-green">Actively Maintained 2024</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A Delphi/Lazarus wrapper for the Chromium Embedded Framework. Embeds a full Chromium browser in a VCL form. Supports bidirectional JavaScript interop — Delphi can call JavaScript functions and JavaScript can call Delphi-registered handlers. Used to host a local HTML/JS graph editor inside the authoring tool application.
+        </div>
+        <ul class="feat">
+          <li><strong>Full Chromium engine</strong> — runs any modern JavaScript library including graph editing frameworks</li>
+          <li><strong>JavaScript → Delphi calls</strong> — the web editor calls a Delphi handler to save node/edge data to SQLite</li>
+          <li><strong>Delphi → JavaScript calls</strong> — Delphi loads the graph from SQLite and pushes it to the web editor on startup</li>
+          <li>Supports Delphi 12.x; actively maintained by Salvador Díaz Fau</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://jgraph.github.io/mxgraph/" target="_blank">mxGraph / draw.io Graph Library (JavaScript)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-blue">Apache 2.0</span>
+          <span class="badge b-yellow">Embedded in CEF4Delphi</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          The JavaScript graph library underlying draw.io. Provides a full-featured interactive graph canvas — node creation, edge drawing, drag-move, zoom, undo/redo, custom node shapes and styles, label editing. Runs entirely in the browser; can be hosted locally as static HTML/JS files loaded by CEF4Delphi. This is the same engine used in professional diagramming tools.
+        </div>
+        <ul class="feat">
+          <li><strong>Professional graph editing</strong> — undo/redo, snap-to-grid, edge routing, zoom/pan, keyboard shortcuts</li>
+          <li><strong>Custom node shapes</strong> — define state, initial, terminal, conditional node styles matching the workflow model</li>
+          <li><strong>Export to SVG/PNG</strong> — workflow diagrams can be exported for clinical review documentation</li>
+          <li>Local deployment — bundle the JS files with the authoring tool; no internet connection required</li>
+          <li>JavaScript API for programmatic graph manipulation — load from and save to Delphi via CEF4Delphi interop</li>
+        </ul>
+        <div class="fit-note">
+          <span>Integration approach:</span> mxGraph runs in CEF4Delphi. When the user saves, the JavaScript calls a registered Delphi handler passing the graph as JSON. The Delphi handler parses the JSON and writes nodes, edges, and guards to the SQLite model database. On load, Delphi reads from SQLite and passes the graph JSON to the JavaScript editor via ExecuteJavaScript.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <strong>Recommendation:</strong> If the authoring tool is for internal developer use only, <strong>Strategy A (TSimpleGraph)</strong> is faster to implement and has no CEF4Delphi deployment overhead (~150MB Chromium binaries). If the tool will be used by clinical informaticists or domain experts who expect a draw.io-quality experience, <strong>Strategy B (CEF4Delphi + mxGraph)</strong> is significantly more capable and worth the additional setup cost.
+    </div>
+  </div>
+
+  <!-- 5. OBJECT MODEL EDITOR -->
+  <div class="section">
+    <span class="section-num">Analysis 05</span>
+    <h2><span class="dot"></span>Object Model Schema Editor — Tooling</h2>
+    <p>The object model schema editor is simpler than the workflow editor — it manages a structured table of object types and their properties. No graph canvas is needed. A standard Delphi master-detail form backed by FireDAC and SQLite is entirely sufficient.</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title">FireDAC + SQLite + Standard VCL (Delphi Built-In)</div>
+        <div class="lib-badges">
+          <span class="badge b-green">No External Dependency</span>
+          <span class="badge b-green">Bundled with Delphi 12.2 CE</span>
+          <span class="badge b-yellow">Recommended for Schema Editor</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          FireDAC is included in Delphi 12.2 CE and provides full SQLite support via static linking — no SQLite DLL required for deployment. A master-detail form with TFDConnection, TFDQuery, TDataSource, TDBGrid, and TDBEdit components provides a complete, functional schema editor with minimal code. Data-aware components handle all binding, navigation, and editing.
+        </div>
+        <ul class="feat">
+          <li><strong>Static SQLite linking</strong> — add FireDAC.Phys.SQLiteWrapper.Stat to uses clause; no DLL deployment</li>
+          <li><strong>Master-detail</strong> — ObjectType master list → ObjectProperty detail grid; TFDQuery MasterSource/MasterFields wiring</li>
+          <li><strong>Live validation</strong> — TFDQuery with SQL constraints shows referential integrity violations immediately</li>
+          <li><strong>Search and filter</strong> — TFDQuery.Filter or parameterized SQL for finding properties by type</li>
+          <li>Impact analysis query: "which workflow nodes reference this property?" — a SQL join across NodeContextContract</li>
+        </ul>
+        <div class="fit-note">
+          <span>Key feature to implement:</span> When a property is renamed or deleted, run an impact query to show all workflow nodes and transition guards that reference it before allowing the change. This prevents silent model inconsistency — the single most common failure mode in evolving domain models.
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/Virtual-TreeView/Virtual-TreeView" target="_blank">VirtualTreeView</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">MIT License</span>
+          <span class="badge b-purple">Enhanced Navigation</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          The most capable tree/list control for Delphi VCL. Significantly more flexible than TTreeView and TListView for rendering the object model hierarchy (object types → properties) with inline editing, icons, multi-column display, and virtual (callback-driven) data loading. Used in RAD Studio's own IDE. Optional — TTreeView suffices for a simple editor, but VirtualTreeView handles large object models without performance degradation.
+        </div>
+        <ul class="feat">
+          <li>Virtual (callback-based) data model — the tree does not store data; it calls back to query what to display</li>
+          <li>In-place cell editing — edit property names and types directly in the tree</li>
+          <li>Multi-column with custom renderers — property name, type, nullable, description in one row</li>
+          <li>Supports Delphi 12.x; actively maintained</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. INTEGRATED AUTHORING TOOL -->
+  <div class="section">
+    <span class="section-num">Analysis 06</span>
+    <h2><span class="dot"></span>Recommendation — One Integrated Authoring Tool</h2>
+    <p>Rather than building separate tools for each concern, implement a <strong>single authoring application</strong> — the <em>System Model Designer</em> — with tabbed or panel-based views for each layer. This ensures all layers share a single SQLite database connection, making referential integrity checks immediate and cross-layer navigation natural.</p>
+
+    <div class="code-block">
+      <div class="cb-head">System Model Designer — Application Structure</div>
+      <pre>
+<span class="kw">SystemModelDesigner.exe</span>
+  │
+  ├── <span class="cmd">Tab: Object Model</span>
+  │     ├── Left panel:  ObjectType list (VirtualTreeView)
+  │     └── Right panel: ObjectProperty editor for selected type
+  │           └── Impact query: "used in N workflow nodes, M commands"
+  │
+  ├── <span class="cmd">Tab: Workflow Graph Editor</span>
+  │     ├── Left panel:  WorkflowGraph list
+  │     ├── Center:      Graph canvas (TSimpleGraph or CEF4/mxGraph)
+  │     └── Right panel: Selected node/edge property editor
+  │           ├── Node: entry_requires, exit_contributes (multiselect from ObjectProperties)
+  │           └── Edge: trigger command, transition type, guard conditions
+  │
+  ├── <span class="cmd">Tab: Command Registry</span>
+  │     ├── Command list with RPC mapping
+  │     └── Context requirements editor (requires / produces)
+  │
+  └── <span class="cmd">Tab: Validation Report</span>
+        ├── Unreachable states
+        ├── Transitions with unsatisfied context requirements
+        ├── Commands referenced in transitions but not defined
+        └── Object properties referenced but not defined</pre>
+    </div>
+
+    <div class="callout purple">
+      <strong>The Validation tab is not optional.</strong> As the model grows, manual consistency checking becomes impossible. The validation report runs a set of SQL queries across all tables and surfaces structural problems: a transition guard referencing a deleted property, a workflow node with no entry_requires despite requiring objects that no prior node contributes, commands used in the graph but absent from the registry. This is the tool that keeps the model coherent as it evolves.
+    </div>
+
+    <h3>Deliverable Sequence for the Authoring Tool</h3>
+    <ul class="rl">
+      <li><strong>Sprint 1</strong> — SQLite schema creation and migration engine. FireDAC connection. Schema version check on startup. No UI yet — just the database layer working and tested.</li>
+      <li><strong>Sprint 2</strong> — Object Model tab. Master-detail ObjectType → ObjectProperty editor. Rename/delete impact query. This is usable immediately to capture the initial domain object model.</li>
+      <li><strong>Sprint 3</strong> — Command Registry tab. List of commands with RPC mappings and context requirement editor. Validates against the object model.</li>
+      <li><strong>Sprint 4</strong> — Workflow Graph Editor tab. Even with TSimpleGraph as a simple canvas, nodes and edges created and saved to SQLite. Node property panel for context contracts. This is the milestone that enables clinical workflow review.</li>
+      <li><strong>Sprint 5</strong> — Validation Report tab. SQL-based consistency checks across all layers. The model is now self-auditing.</li>
+    </ul>
+  </div>
+
+  <!-- 7. EXTERNAL TOOLS -->
+  <div class="section">
+    <span class="section-num">Analysis 07</span>
+    <h2><span class="dot"></span>Supporting External Tools</h2>
+    <p>Several existing external tools complement the authoring workflow without requiring custom development.</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title">DB Browser for SQLite (sqlitebrowser.org)</div>
+        <div class="lib-badges">
+          <span class="badge b-blue">Open Source — GPL</span>
+          <span class="badge b-green">Free Desktop App</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A GUI tool for browsing, querying, and editing SQLite databases. During early development, before the authoring tool's UI is complete, DB Browser provides direct access to the system model database for inspection and manual edits. Also useful for running ad hoc validation queries and for database backup.
+        </div>
+        <ul class="feat">
+          <li>Browse and edit all tables directly — useful before the schema editor UI exists</li>
+          <li>Execute arbitrary SQL — run validation queries manually during development</li>
+          <li>Import/export CSV — seed the object model from an existing domain dictionary</li>
+          <li>No installation required — portable executable</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title">draw.io (app.diagrams.net) — For Initial Workflow Sketching</div>
+        <div class="lib-badges">
+          <span class="badge b-blue">Free / Open Source</span>
+          <span class="badge b-gray">Design Phase Only</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          The free web and desktop diagramming tool (formerly draw.io, now diagrams.net). Useful in the early design phase before the authoring tool exists — clinicians and architects can sketch workflow graphs visually and export them as XML. The XML can then be parsed to seed the SQLite workflow graph tables. Not a replacement for the authoring tool, but an excellent starting point.
+        </div>
+        <ul class="feat">
+          <li>No installation required (web version); desktop version available</li>
+          <li>Exports to XML — parseable to extract node/edge structure</li>
+          <li>Familiar to clinical informaticists; widely used for process documentation</li>
+          <li>Use for: initial workflow discovery sessions with clinical stakeholders</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Healthcare Application Architecture · Part V</span>
+    <span>System Model · Priority · Tooling · Delphi 12.2 CE</span>
+  </footer>
+
+</div>
+</body>
+</html>

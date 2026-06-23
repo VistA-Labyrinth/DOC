@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Source Libraries for Workflow Graph — Delphi 12.2 CE</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d29922;
+    --accent4: #f85149;
+    --accent5: #bc8cff;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --hf: 'Playfair Display', Georgia, serif;
+    --mf: 'IBM Plex Mono', monospace;
+    --bf: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--bf);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.13;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .page {
+    position: relative; z-index: 1;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 64px 40px 100px;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+    margin-bottom: 64px;
+    animation: fadeDown .55s ease both;
+  }
+  .doc-label {
+    font-family: var(--mf);
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent3);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .doc-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--accent3) 0%, transparent 100%);
+    opacity: .3;
+  }
+  h1 {
+    font-family: var(--hf);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 900;
+    line-height: 1.13;
+    margin-bottom: 16px;
+  }
+  h1 em { font-style: italic; color: var(--accent3); }
+  .subtitle { color: var(--text-muted); font-size: 14px; font-weight: 300; letter-spacing: .03em; }
+
+  /* INTRO NOTE */
+  .intro-note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent3);
+    border-radius: 0 8px 8px 0;
+    padding: 20px 24px;
+    margin-bottom: 56px;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.8;
+    animation: fadeUp .4s ease .05s both;
+  }
+  .intro-note strong { color: var(--text); font-weight: 500; }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 56px;
+    animation: fadeUp .5s ease both;
+  }
+  .section:nth-child(1){animation-delay:.06s}
+  .section:nth-child(2){animation-delay:.10s}
+  .section:nth-child(3){animation-delay:.13s}
+  .section:nth-child(4){animation-delay:.16s}
+  .section:nth-child(5){animation-delay:.19s}
+  .section:nth-child(6){animation-delay:.22s}
+
+  .section-num {
+    display: block;
+    font-family: var(--mf);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-family: var(--hf);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h2 .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+    flex-shrink: 0; margin-bottom: 3px;
+  }
+  p {
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    font-weight: 300;
+    line-height: 1.85;
+  }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* LIBRARY CARDS */
+  .lib-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    transition: border-color .2s;
+  }
+  .lib-card:hover { border-color: rgba(88,166,255,.35); }
+
+  .lib-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 18px 24px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .lib-title {
+    font-family: var(--mf);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .lib-title a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(88,166,255,.3);
+  }
+  .lib-title a:hover { border-bottom-color: var(--accent); }
+  .lib-badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-family: var(--mf);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .b-green  { background:rgba(63,185,80,.12);   color:var(--accent2); border:1px solid rgba(63,185,80,.28);  }
+  .b-blue   { background:rgba(88,166,255,.12);  color:var(--accent);  border:1px solid rgba(88,166,255,.28); }
+  .b-purple { background:rgba(188,140,255,.12); color:var(--accent5); border:1px solid rgba(188,140,255,.28);}
+  .b-yellow { background:rgba(210,153,34,.12);  color:var(--accent3); border:1px solid rgba(210,153,34,.28); }
+  .b-red    { background:rgba(248,81,73,.12);   color:var(--accent4); border:1px solid rgba(248,81,73,.28);  }
+  .b-gray   { background:rgba(139,148,158,.10); color:var(--text-muted); border:1px solid rgba(139,148,158,.2);}
+
+  .lib-body { padding: 18px 24px 20px; }
+  .lib-desc {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.8;
+    margin-bottom: 14px;
+  }
+  .lib-desc strong { color: var(--text); font-weight: 500; }
+
+  /* Feature list inside card */
+  ul.feat {
+    list-style: none; padding: 0; margin: 0 0 14px;
+  }
+  ul.feat li {
+    display: flex; gap: 9px; align-items: flex-start;
+    font-size: 13px; font-weight: 300;
+    color: var(--text-muted);
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(48,54,61,.4);
+  }
+  ul.feat li:last-child { border-bottom: none; }
+  ul.feat li::before { content:'·'; color:var(--accent3); font-size:16px; flex-shrink:0; line-height:1.3; }
+  ul.feat li strong { color:var(--text); font-weight:500; }
+
+  /* Fit note */
+  .fit-note {
+    border-top: 1px solid var(--border);
+    margin-top: 14px;
+    padding-top: 12px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    font-family: var(--mf);
+  }
+  .fit-note span { color: var(--accent3); font-weight: 500; }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .cb-head {
+    background: var(--surface2);
+    padding: 8px 16px;
+    font-family: var(--mf);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: .08em;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .cb-head::before {
+    content:''; width:8px; height:8px; border-radius:50%;
+    background:var(--accent3); opacity:.6;
+  }
+  pre {
+    padding: 20px;
+    font-family: var(--mf);
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: var(--text-muted);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .kw  { color: var(--accent5); }
+  .val { color: var(--accent2); }
+  .cmt { color: var(--text-dim); font-style: italic; }
+  .key { color: var(--accent3); }
+  .cmd { color: var(--accent);  }
+
+  /* CALLOUTS */
+  .callout {
+    border-left: 3px solid var(--accent3);
+    background: rgba(210,153,34,.05);
+    padding: 16px 20px;
+    border-radius: 0 6px 6px 0;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+  .callout.blue   { border-left-color:var(--accent);  background:rgba(88,166,255,.05);  }
+  .callout.green  { border-left-color:var(--accent2); background:rgba(63,185,80,.05);   }
+  .callout.purple { border-left-color:var(--accent5); background:rgba(188,140,255,.05); }
+  .callout.red    { border-left-color:var(--accent4); background:rgba(248,81,73,.05);   }
+  .callout strong { color:var(--text); font-weight:500; }
+
+  /* RECOMMENDATION TABLE */
+  .rec-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .rec-table thead th {
+    text-align: left;
+    padding: 11px 20px;
+    font-family: var(--mf);
+    font-size: 11px;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .rec-table tbody td {
+    padding: 13px 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 300;
+    vertical-align: top;
+  }
+  .rec-table tbody tr:last-child td { border-bottom: none; }
+  .rec-table tbody td:first-child {
+    font-family: var(--mf);
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+    width: 180px;
+  }
+  .rec-table tbody td:nth-child(2) { color: var(--text); font-weight: 400; }
+
+  /* BULLET LIST */
+  ul.rl { list-style:none; padding:0; margin:12px 0 18px; }
+  ul.rl li {
+    display:flex; gap:10px; align-items:flex-start;
+    padding:8px 0;
+    border-bottom:1px solid rgba(48,54,61,.5);
+    color:var(--text-muted);
+    font-size:14px; font-weight:300;
+  }
+  ul.rl li:last-child { border-bottom:none; }
+  ul.rl li::before { content:'→'; color:var(--accent3); font-family:var(--mf); font-size:12px; flex-shrink:0; margin-top:2px; }
+  ul.rl li strong { color:var(--text); font-weight:500; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 80px;
+    padding-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer span { font-family:var(--mf); font-size:11px; color:var(--text-dim); letter-spacing:.08em; }
+
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(14px)}  to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:640px){
+    .page{padding:36px 20px 80px;}
+    h2{font-size:1.25rem;}
+    .lib-head{flex-direction:column;}
+    .rec-table tbody td:first-child{width:auto;white-space:normal;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="doc-label">Architecture Review · Part III · Delphi 12.2 CE · Implementation Options</div>
+    <h1>Open Source Libraries for the<br><em>Workflow Graph</em> in Delphi 12.2</h1>
+    <p class="subtitle">Evaluation of available Delphi-native and portable open source components<br>for state machine engine, graph storage, JSON serialization, and supporting infrastructure</p>
+  </header>
+
+  <div class="intro-note">
+    <strong>Context.</strong> The workflow graph described in Parts I and II requires four implementation concerns: (1) a <strong>state machine engine</strong> that executes nodes, fires transitions, and evaluates context-based guard conditions; (2) a <strong>graph data structure and storage</strong> mechanism for defining and persisting the workflow; (3) <strong>JSON serialization</strong> for the execution context and HTTP communication with the RPC gateway; and (4) <strong>supporting infrastructure</strong> — dependency injection and event bus — that holds the layered architecture together. Each concern has viable open source options in the Delphi ecosystem. Delphi 12.2 Community Edition supports all libraries listed here; CE license restrictions apply to commercial distribution, not to the libraries themselves.
+  </div>
+
+  <!-- SECTION 1: State Machine Engine -->
+  <div class="section">
+    <span class="section-num">Concern 01</span>
+    <h2><span class="dot"></span>State Machine Engine</h2>
+    <p>These libraries provide the runtime engine that manages workflow states, evaluates transition guards, and fires entry/exit actions. This is the most directly relevant concern for implementing the workflow graph described in Part II.</p>
+
+    <!-- stateless -->
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/SirRufo/stateless" target="_blank">stateless (SirRufo/stateless)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">MIT License</span>
+          <span class="badge b-yellow">Primary Recommendation</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A direct Delphi port of the widely used .NET <em>Stateless</em> library by Nick Blumhardt. Implements a fluent, code-configured state machine. States and triggers are generically typed — enumerations, integers, strings, or any Delphi type can serve as state and trigger identifiers.
+        </div>
+        <ul class="feat">
+          <li><strong>Generic state and trigger types</strong> — no fixed state representation; use enums, strings, or custom types</li>
+          <li><strong>Guard conditions</strong> — anonymous method predicates on transitions; transition fires only if guard returns true</li>
+          <li><strong>OnEntry / OnExit actions</strong> — anonymous methods executed on state transitions</li>
+          <li><strong>Sub-state / hierarchical support</strong> — states can be nested; sub-states inherit parent transitions</li>
+          <li><strong>Reentrant transitions</strong> — a state may transition back to itself, triggering entry/exit actions</li>
+          <li><strong>Fluent configuration API</strong> — entire machine declared in readable code; easy to audit</li>
+          <li><strong>Trigger parameters</strong> — typed data can be attached to a trigger and passed to entry actions</li>
+        </ul>
+        <div class="fit-note">
+          <span>Architectural fit:</span> Guard conditions on transitions map directly to the context-requirement model. Entry actions map to "node activates → resolve context". The fluent API allows a workflow graph to be declared as readable, auditable Delphi code. Hierarchical states support nested workflows within a module.
+        </div>
+      </div>
+    </div>
+
+    <!-- TStateMachine (Malcolm Groves) -->
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/malcolmgroves/TStateMachine" target="_blank">TStateMachine (malcolmgroves)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">MIT License</span>
+          <span class="badge b-gray">Alternative</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          An independent Delphi generic state machine framework. Acknowledges its debt to Stateless but is a separate implementation. Supports generic state and trigger types, anonymous method guards and effects, and a fluid configuration interface. Well-regarded in the Delphi community and included in multiple "awesome-delphi" curated lists.
+        </div>
+        <ul class="feat">
+          <li><strong>Generic types</strong> for states and triggers</li>
+          <li><strong>Guard conditions</strong> via anonymous methods</li>
+          <li><strong>OnEntry / OnExit effects</strong> via anonymous methods</li>
+          <li><strong>Fluid interface</strong> for state machine configuration</li>
+          <li>Somewhat less feature-complete than stateless; does not document hierarchical state support</li>
+        </ul>
+        <div class="fit-note">
+          <span>Architectural fit:</span> Solid alternative if stateless shows compatibility issues. Simpler API may be preferable for straightforward workflows without deep nesting.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Recommendation:</strong> Start with <strong>SirRufo/stateless</strong>. Its direct lineage from the .NET Stateless library means its design is battle-tested, its hierarchical state support is explicitly documented, and trigger parameters cleanly support passing execution context data through transitions. Evaluate TStateMachine as a fallback if Delphi 12.2 CE compatibility issues arise.
+    </div>
+  </div>
+
+  <!-- SECTION 2: Graph Storage -->
+  <div class="section">
+    <span class="section-num">Concern 02</span>
+    <h2><span class="dot"></span>Graph Data Structure and Workflow Storage</h2>
+    <p>The workflow graph must be storable as data — independent of the state machine engine instance — so it can be designed, persisted, versioned, and loaded at runtime. There is no Delphi-native graph database library worth recommending for this purpose; the practical options are JSON or XML serialization of a custom graph model, or an embedded relational store.</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title">Custom Graph Model + JSON Persistence</div>
+        <div class="lib-badges">
+          <span class="badge b-yellow">Recommended Approach</span>
+          <span class="badge b-green">No External Dependency</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          Define the workflow graph as a set of Delphi record or class types — nodes, transitions, guard descriptors, context contracts — and serialize them to JSON using one of the serialization libraries described in Concern 03. This approach keeps the graph definition human-readable, version-controllable, and loadable at application startup without an embedded database.
+        </div>
+        <div class="code-block">
+          <div class="cb-head">Workflow Graph — Minimal JSON Schema</div>
+          <pre>
+{
+  <span class="key">"workflow"</span>: <span class="val">"DocumentVisit"</span>,
+  <span class="key">"nodes"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="val">"SelectPatient"</span>,
+      <span class="key">"entry_requires"</span>: [],
+      <span class="key">"exit_contributes"</span>: [<span class="val">"PatientRecord.dfn"</span>, <span class="val">"PatientRecord.name"</span>],
+      <span class="key">"transitions"</span>: [
+        { <span class="key">"target"</span>: <span class="val">"SelectTemplate"</span>, <span class="key">"trigger"</span>: <span class="val">"cmd.selectPatient"</span>,
+          <span class="key">"requires"</span>: [<span class="val">"PatientRecord.dfn"</span>], <span class="key">"type"</span>: <span class="val">"mandatory"</span> },
+        { <span class="key">"target"</span>: <span class="val">"Cancel"</span>, <span class="key">"trigger"</span>: <span class="val">"cmd.cancel"</span>,
+          <span class="key">"requires"</span>: [], <span class="key">"type"</span>: <span class="val">"global"</span> }
+      ]
+    }
+  ]
+}</pre>
+        </div>
+        <ul class="feat">
+          <li>Human-readable; reviewable by clinical informaticists without developer involvement</li>
+          <li>Version-controllable in any source control system</li>
+          <li>Loadable at runtime — workflow changes do not require recompilation</li>
+          <li>Drives the state machine engine via a loader that translates graph JSON into stateless configuration calls</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/davidberneda/GenericTree" target="_blank">GenericTree (davidberneda)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">MIT License</span>
+          <span class="badge b-gray">Supporting Structure</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A generic tree structure implementation for Delphi. Useful for representing hierarchical workflow states (parent workflows containing nested sub-workflows) and for the module tree described in Part I. Not a graph library per se — it models trees, not arbitrary directed graphs — but covers the hierarchical structure of most healthcare workflow definitions.
+        </div>
+        <ul class="feat">
+          <li>Generic typed nodes — the tree structure is independent of payload type</li>
+          <li>Suitable for hierarchical state decomposition and module trees</li>
+          <li>Lightweight, no external dependencies</li>
+        </ul>
+        <div class="fit-note">
+          <span>Use for:</span> Representing the workflow hierarchy in memory when loading from JSON. Not a replacement for JSON-based persistence.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: JSON Serialization -->
+  <div class="section">
+    <span class="section-num">Concern 03</span>
+    <h2><span class="dot"></span>JSON Serialization</h2>
+    <p>JSON serialization serves two roles in this architecture: serializing the workflow graph definition (graph storage) and serializing the execution context and RPC request/response envelopes (HTTP communication with the RPC gateway). Delphi's built-in <code>System.JSON</code> and <code>REST.Json</code> are functional but limited for complex object graphs. The following open source libraries are superior for this architecture's needs.</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/paolo-rossi/delphi-neon" target="_blank">Neon — JSON Serialization Library</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">Apache 2.0</span>
+          <span class="badge b-yellow">Primary Recommendation</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A mature, actively maintained Delphi JSON serialization library by Paolo Rossi. Works on existing PODO (Plain Old Delphi Object) classes without requiring changes to inheritance hierarchy. Attribute-based field mapping decouples JSON field names from Delphi property names — essential for an API layer where JSON schema must be stable regardless of internal refactoring.
+        </div>
+        <ul class="feat">
+          <li><strong>Attribute-based JSON field naming</strong> — JSON name is independent of Delphi property name</li>
+          <li><strong>Opt-in field serialization</strong> — only explicitly annotated fields are serialized; prevents accidental exposure of internal state</li>
+          <li><strong>Supports TDateTime, generics collections</strong> (TList, TDictionary, etc.)</li>
+          <li><strong>Highly configurable</strong> — null handling, enum serialization, naming conventions all configurable</li>
+          <li><strong>No constraints on class hierarchy</strong> — works with any existing class structure</li>
+          <li>Used by WiRL REST framework; widely adopted in production Delphi applications</li>
+          <li>Supports Delphi 12.x; actively maintained as of 2024</li>
+        </ul>
+        <div class="fit-note">
+          <span>Use for:</span> Serializing execution context objects to JSON for RPC gateway requests. Serializing and deserializing workflow graph definitions. Deserializing RPC gateway responses into typed result objects.
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/ahausladen/JsonDataObjects" target="_blank">JsonDataObjects (ahausladen)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">MIT License</span>
+          <span class="badge b-gray">High Performance Alternative</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A high-performance, low-allocation JSON parser and object model for Delphi. Does not provide RTTI-based automatic serialization (you build the JSON object model manually) but is significantly faster than System.JSON for large payloads. Well-suited for parsing large VistA RPC response envelopes where performance matters.
+        </div>
+        <ul class="feat">
+          <li>Substantially faster than System.JSON for parsing large JSON payloads</li>
+          <li>Lower memory allocation; important for high-frequency RPC calls</li>
+          <li>DOM-style API — navigate and construct JSON trees manually</li>
+          <li>No automatic object serialization; requires hand-written mapping code</li>
+        </ul>
+        <div class="fit-note">
+          <span>Use for:</span> The RPC gateway HTTP request/response layer where raw parsing performance matters. Use Neon for object serialization; use JsonDataObjects for parsing large or frequent raw JSON payloads.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Supporting Infrastructure -->
+  <div class="section">
+    <span class="section-num">Concern 04</span>
+    <h2><span class="dot"></span>Supporting Infrastructure</h2>
+    <p>The layered architecture requires two supporting infrastructure concerns: dependency injection (so modules can declare their dependencies rather than constructing them) and an event/message bus (so modules communicate through shared context and events rather than direct calls).</p>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://bitbucket.org/sglienke/spring4d" target="_blank">Spring4D</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">Apache 2.0</span>
+          <span class="badge b-yellow">Primary Recommendation</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          The most comprehensive open source library for Delphi application infrastructure. Spring4D provides a dependency injection (IoC) container, interface-based generic collections superior to System.Generics.Collections, nullable type support, and RTTI extensions. It is the de facto standard for structured Delphi application architecture and is actively maintained (version 2.0, 2023).
+        </div>
+        <ul class="feat">
+          <li><strong>Dependency injection container</strong> — register interfaces and their implementations; resolve dependencies automatically</li>
+          <li><strong>Interface-based collections</strong> — IList&lt;T&gt;, IReadOnlyList&lt;T&gt;, IDictionary&lt;K,V&gt;; enforce read/write separation across module boundaries</li>
+          <li><strong>Nullable&lt;T&gt;</strong> — value types with explicit null semantics; essential for execution context properties that may be unresolved</li>
+          <li><strong>RTTI extensions</strong> — richer reflection capabilities for attribute-driven architecture</li>
+          <li>Widely adopted; extensive community documentation and examples</li>
+          <li>Supports Delphi 12.x; current release 2.0 (November 2023)</li>
+        </ul>
+        <div class="fit-note">
+          <span>Architectural fit:</span> The IoC container manages module registration and lifecycle. IReadOnlyList&lt;T&gt; enforces that modules receiving context collections cannot mutate them. Nullable&lt;T&gt; precisely models the "context property present but unresolved" state identified in Part I as a critical design concern.
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/spinettaro/delphi-event-bus" target="_blank">Delphi Event Bus (DEB)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">Apache 2.0</span>
+          <span class="badge b-purple">Event Infrastructure</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          An annotation-driven publish-subscribe event bus for Delphi. Subscribers declare interest via attributes; publishers post events without knowing subscribers. This is the correct mechanism for the inter-module communication model described in Part I: module outputs go to the event bus, other modules subscribe to events they need rather than calling each other directly.
+        </div>
+        <ul class="feat">
+          <li><strong>Attribute-based subscriptions</strong> — annotate methods with [Subscribe]; no manual registration/unregistration boilerplate</li>
+          <li><strong>Background thread delivery</strong> — events can be delivered on a background thread with [Subscribe(TThreadMode.Background)]</li>
+          <li><strong>Decouples modules entirely</strong> — publisher and subscriber have no compile-time dependency on each other</li>
+          <li>Lightweight; minimal overhead for intra-process messaging</li>
+        </ul>
+        <div class="fit-note">
+          <span>Architectural fit:</span> Workflow state transitions publish context-change events. Module UI components subscribe to relevant context events to refresh their display. No module calls another module's methods directly — all communication is through the bus or through the shared execution context.
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-card">
+      <div class="lib-head">
+        <div class="lib-title"><a href="https://github.com/VSoftTechnologies/Delphi-Mocks" target="_blank">Delphi Mocks (VSoftTechnologies)</a></div>
+        <div class="lib-badges">
+          <span class="badge b-green">Delphi Native</span>
+          <span class="badge b-blue">Apache 2.0</span>
+          <span class="badge b-gray">Testing Infrastructure</span>
+        </div>
+      </div>
+      <div class="lib-body">
+        <div class="lib-desc">
+          A mock object framework for Delphi unit testing. Given the architecture's emphasis on testing workflow logic without UI, a mocking framework is essential for injecting simulated execution contexts and RPC gateway responses into the state machine and command layers during automated testing.
+        </div>
+        <ul class="feat">
+          <li>Interface and object mocking with fluent setup API</li>
+          <li>Verify expected call sequences and parameters</li>
+          <li>Mock the RPC gateway interface to test command/context logic without network calls</li>
+          <li>Mock context objects to test guard conditions and transition logic in isolation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: CE License Note -->
+  <div class="section">
+    <span class="section-num">Concern 05</span>
+    <h2><span class="dot"></span>Delphi 12.2 CE Constraints</h2>
+    <p>Delphi 12.2 Community Edition is free for personal, academic, and open source use. For commercial healthcare application development, a Professional or Enterprise license is required. The open source libraries listed here are independent of the Delphi edition — they compile and run identically under CE and commercial editions. Specific notes:</p>
+    <ul class="rl">
+      <li><strong>Spring4D</strong> requires Delphi XE or higher; confirmed working with Delphi 12.x. Install via the included Build.exe or Delphinus package manager.</li>
+      <li><strong>stateless (SirRufo)</strong> is a pure Pascal library with no component registration; add the source path to the project library path.</li>
+      <li><strong>Neon</strong> supports Delphi 10.3 Rio and higher; confirmed working with Delphi 12.x.</li>
+      <li><strong>JsonDataObjects</strong> supports Delphi 2009 and higher; no version concerns.</li>
+      <li><strong>Delphi Event Bus</strong> supports Delphi XE4 and higher.</li>
+      <li><strong>CE compiler limitation</strong> — CE does not include full RTTI compilation for all targets; ensure RTTI settings in project options are set to include visibility modifiers (public, published) required by Neon and Spring4D reflection features.</li>
+    </ul>
+    <div class="callout red">
+      <strong>Commercial use.</strong> If this system is deployed in a production healthcare environment, Delphi CE's license prohibits commercial distribution. All open source libraries listed use MIT or Apache 2.0 licenses, which are compatible with commercial use, but the Delphi compiler itself requires an appropriate commercial license for commercial deployment.
+    </div>
+  </div>
+
+  <!-- SECTION 6: Recommended Stack -->
+  <div class="section">
+    <span class="section-num">Summary</span>
+    <h2><span class="dot"></span>Recommended Open Source Stack</h2>
+
+    <table class="rec-table">
+      <thead>
+        <tr>
+          <th>Concern</th>
+          <th>Library</th>
+          <th>Role</th>
+          <th>License</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>State Machine Engine</td>
+          <td>stateless (SirRufo)</td>
+          <td>Executes workflow graph; manages state transitions, guard conditions, entry/exit actions</td>
+          <td><span class="badge b-blue">MIT</span></td>
+        </tr>
+        <tr>
+          <td>Graph Persistence</td>
+          <td>Custom JSON model + Neon</td>
+          <td>Stores workflow definition as JSON; loaded at startup to configure state machine</td>
+          <td><span class="badge b-green">Apache 2.0</span></td>
+        </tr>
+        <tr>
+          <td>JSON Serialization</td>
+          <td>Neon</td>
+          <td>Serializes execution context to RPC gateway JSON requests; deserializes responses</td>
+          <td><span class="badge b-green">Apache 2.0</span></td>
+        </tr>
+        <tr>
+          <td>High-perf JSON Parsing</td>
+          <td>JsonDataObjects</td>
+          <td>Parses large or frequent raw JSON payloads from the RPC gateway</td>
+          <td><span class="badge b-blue">MIT</span></td>
+        </tr>
+        <tr>
+          <td>Dependency Injection</td>
+          <td>Spring4D</td>
+          <td>Module registration and lifecycle; IReadOnlyList for context boundary enforcement; Nullable&lt;T&gt; for unresolved context properties</td>
+          <td><span class="badge b-green">Apache 2.0</span></td>
+        </tr>
+        <tr>
+          <td>Event / Message Bus</td>
+          <td>Delphi Event Bus (DEB)</td>
+          <td>Decoupled inter-module communication; context-change event delivery</td>
+          <td><span class="badge b-green">Apache 2.0</span></td>
+        </tr>
+        <tr>
+          <td>Testing / Mocking</td>
+          <td>Delphi Mocks</td>
+          <td>UI-free testing of workflow logic, command execution, and context handling</td>
+          <td><span class="badge b-green">Apache 2.0</span></td>
+        </tr>
+        <tr>
+          <td>Hierarchical Structure</td>
+          <td>GenericTree</td>
+          <td>In-memory representation of hierarchical workflow and module trees</td>
+          <td><span class="badge b-blue">MIT</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout green">
+      <strong>Key observation.</strong> All eight concerns can be addressed with open source libraries that have zero external runtime dependencies and compile cleanly as Object Pascal source included in the project. The result is a self-contained application with no external service dependencies beyond the VistA RPC gateway — appropriate for a clinical environment with strict network and deployment controls.
+    </div>
+  </div>
+
+  <footer>
+    <span>Healthcare Application Architecture · Part III</span>
+    <span>Delphi 12.2 CE · Open Source Library Evaluation</span>
+  </footer>
+
+</div>
+</body>
+</html>
